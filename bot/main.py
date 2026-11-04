@@ -9,7 +9,7 @@ import os
 logging.basicConfig(level=logging.INFO)
 
 # Твой токен вшит прямо сюда
-BOT_TOKEN = "9082465498:AAF7tQumBnwc6x_srZ89Uyqxjw0t22r46r0"
+BOT_TOKEN = "9082465498:AAH9zejaIozcGEnGcxZb6CgAPD3eW8kksTE"
 WEBAPP_URL = "https://justgeniousstudent.github.io/botbotbot/webapp/index.html"
 
 bot = Bot(token=BOT_TOKEN)
