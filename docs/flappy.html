@@ -6,13 +6,40 @@
     <title>Flappy Snowman</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: system-ui, sans-serif; touch-action: none; }
-        canvas { background: #1e293b; border-radius: 16px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); border: 4px solid #475569; width: 90vw; height: 90vh; max-width: 500px; object-fit: contain; }
-        .score { color: #f8fafc; font-size: 24px; margin-top: 10px; font-weight: bold; position: absolute; top: 20px; }
+        body { 
+            background: #0f172a; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            overflow: hidden; 
+            font-family: system-ui, sans-serif; 
+            touch-action: none; 
+        }
+        canvas { 
+            border-radius: 16px; 
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.2); 
+            border: 4px solid #475569; 
+            width: 90vw; 
+            height: 90vh; 
+            max-width: 500px; 
+            object-fit: contain;
+            background: #0f172a;
+        }
+        .score { 
+            color: #f8fafc; 
+            font-size: 28px; 
+            font-weight: bold; 
+            position: absolute; 
+            top: 10vh; 
+            text-shadow: 0 0 10px #000;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
-    <div class="score" id="scoreDisplay">Счет: 0</div>
+    <div class="score" id="scoreDisplay">0</div>
     <canvas id="game"></canvas>
     <script>
         const canvas = document.getElementById('game');
@@ -26,31 +53,54 @@
         resize();
         
         let bird, pipes, score, gameLoop, frames, isGameOver;
-        const gravity = 0.25, jump = -4.5, pipeWidth = 50, pipeGap = 120, pipeSpeed = 2.5;
+        const gravity = 0.25, jump = -4.5, pipeWidth = 50, pipeGap = 140, pipeSpeed = 2.5;
+        
+        // Для фона
+        let bgSnow = [], fgSnow = [], mountains = [];
 
         function init() {
             bird = { x: 50, y: canvas.height/2, width: 30, height: 30, velocity: 0 };
             pipes = []; score = 0; frames = 0; isGameOver = false;
-            document.getElementById('scoreDisplay').textContent = `Счет: ${score}`;
+            document.getElementById('scoreDisplay').textContent = score;
+            
+            // Генерируем снежинки
+            bgSnow = []; fgSnow = [];
+            for(let i=0; i<50; i++) bgSnow.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*2+1, speed: 0.5});
+            for(let i=0; i<30; i++) fgSnow.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*3+2, speed: 1.5});
+            
+            // Генерируем горы (зигзаг)
+            mountains = [];
+            let mX = 0;
+            while(mX < canvas.width * 2) {
+                mountains.push({x: mX, w: Math.random()*80+50, h: Math.random()*100+80});
+                mX += Math.random()*50+30;
+            }
+
             if(gameLoop) clearInterval(gameLoop);
             gameLoop = setInterval(update, 1000/60);
         }
 
         function update() {
             if (isGameOver) return;
-            frames++; bird.velocity += gravity; bird.y += bird.velocity;
+            frames++; 
+            bird.velocity += gravity; 
+            bird.y += bird.velocity;
+            
             if (bird.y + bird.height > canvas.height || bird.y < 0) gameOver();
+            
             if (frames % 90 === 0) {
                 let minHeight = 50, maxHeight = canvas.height - pipeGap - 50;
                 let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
                 pipes.push({ x: canvas.width, top: topHeight, bottom: canvas.height - topHeight - pipeGap, passed: false });
             }
+            
             for (let i = pipes.length - 1; i >= 0; i--) {
                 pipes[i].x -= pipeSpeed;
                 if (bird.x < pipes[i].x + pipeWidth && bird.x + bird.width > pipes[i].x &&
                     (bird.y < pipes[i].top || bird.y + bird.height > canvas.height - pipes[i].bottom)) gameOver();
+                
                 if (pipes[i].x + pipeWidth < bird.x && !pipes[i].passed) {
-                    pipes[i].passed = true; score++; document.getElementById('scoreDisplay').textContent = `Счет: ${score}`;
+                    pipes[i].passed = true; score++; document.getElementById('scoreDisplay').textContent = score;
                 }
                 if (pipes[i].x + pipeWidth < 0) pipes.splice(i, 1);
             }
@@ -58,27 +108,104 @@
         }
 
         function draw() {
-            ctx.fillStyle = "#1e293b"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#38bdf8";
-            pipes.forEach(p => {
-                ctx.fillRect(p.x, 0, pipeWidth, p.top); ctx.fillRect(p.x, canvas.height - p.bottom, pipeWidth, p.bottom);
-                ctx.fillStyle = "#bae6fd"; ctx.fillRect(p.x + 5, 0, 10, p.top); ctx.fillRect(p.x + 5, canvas.height - p.bottom, 10, p.bottom);
-                ctx.fillStyle = "#38bdf8";
+            // 1. Небо (Градиент)
+            let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGrad.addColorStop(0, "#0f172a");
+            skyGrad.addColorStop(1, "#1e3a8a");
+            ctx.fillStyle = skyGrad; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Луна
+            ctx.fillStyle = "#fef08a";
+            ctx.beginPath();
+            ctx.arc(canvas.width - 60, 60, 30, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(254, 240, 138, 0.2)";
+            ctx.beginPath();
+            ctx.arc(canvas.width - 60, 60, 50, 0, Math.PI*2);
+            ctx.fill();
+
+            // 3. Дальние горы (параллакс)
+            ctx.fillStyle = "#1e293b";
+            mountains.forEach(m => {
+                let x = (m.x - frames * 0.5) % (canvas.width * 2);
+                if (x < -100) x += canvas.width * 2;
+                ctx.beginPath();
+                ctx.moveTo(x, canvas.height);
+                ctx.lineTo(x + m.w/2, canvas.height - m.h);
+                ctx.lineTo(x + m.w, canvas.height);
+                ctx.fill();
             });
-            ctx.font = "30px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.fillText("☃️", bird.x + bird.width/2, bird.y + bird.height/2);
+
+            // 4. Задний снег (медленный)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+            bgSnow.forEach(s => {
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+                if(!isGameOver) {
+                    s.y += s.speed;
+                    s.x -= 0.2; // Легкий ветер
+                    if(s.y > canvas.height) { s.y = 0; s.x = Math.random()*canvas.width; }
+                    if(s.x < 0) s.x = canvas.width;
+                }
+            });
+
+            // 5. Трубы (Ледяные колонны)
+            pipes.forEach(p => {
+                let pipeGrad = ctx.createLinearGradient(p.x, 0, p.x + pipeWidth, 0);
+                pipeGrad.addColorStop(0, "#38bdf8");
+                pipeGrad.addColorStop(0.5, "#bae6fd");
+                pipeGrad.addColorStop(1, "#0ea5e9");
+                ctx.fillStyle = pipeGrad;
+                
+                // Верхняя труба
+                ctx.fillRect(p.x, 0, pipeWidth, p.top);
+                ctx.fillRect(p.x - 5, p.top - 20, pipeWidth + 10, 20); // Шляпка
+                // Нижняя труба
+                ctx.fillRect(p.x, canvas.height - p.bottom, pipeWidth, p.bottom);
+                ctx.fillRect(p.x - 5, canvas.height - p.bottom, pipeWidth + 10, 20); // Шляпка
+            });
+
+            // 6. Снеговик (Птица)
+            ctx.font = "30px Arial"; 
+            ctx.textAlign = "center"; 
+            ctx.textBaseline = "middle";
+            // Наклон при полете
+            let angle = Math.min(Math.max(bird.velocity * 0.1, -0.5), 0.5);
+            ctx.save();
+            ctx.translate(bird.x + bird.width/2, bird.y + bird.height/2);
+            ctx.rotate(angle);
+            ctx.fillText("☃️", 0, 0);
+            ctx.restore();
+
+            // 7. Передний снег (быстрый)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+            fgSnow.forEach(s => {
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+                if(!isGameOver) {
+                    s.y += s.speed;
+                    s.x -= 1; // Ветер сильнее
+                    if(s.y > canvas.height) { s.y = 0; s.x = Math.random()*canvas.width; }
+                    if(s.x < 0) s.x = canvas.width;
+                }
+            });
+
+            // 8. Экран Game Over
             if (isGameOver) {
                 ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#ef4444"; ctx.font = "bold 24px Arial"; ctx.fillText("Снеговик упал!", canvas.width/2, canvas.height/2 - 20);
-                ctx.fillStyle = "white"; ctx.font = "18px Arial"; ctx.fillText("Нажми, чтобы начать заново", canvas.width/2, canvas.height/2 + 20);
+                ctx.fillStyle = "#ef4444"; ctx.font = "bold 24px Arial"; 
+                ctx.fillText("Снеговик упал!", canvas.width/2, canvas.height/2 - 20);
+                ctx.fillStyle = "white"; ctx.font = "18px Arial"; 
+                ctx.fillText("Нажми, чтобы играть снова", canvas.width/2, canvas.height/2 + 20);
             }
         }
 
         function gameOver() { isGameOver = true; clearInterval(gameLoop); }
         function doJump() { if (isGameOver) init(); else bird.velocity = jump; }
+        
         document.addEventListener("keydown", (e) => { if(e.code === "Space" || e.key === "ArrowUp") { e.preventDefault(); doJump(); } });
         canvas.addEventListener("mousedown", doJump);
         canvas.addEventListener("touchstart", (e) => { e.preventDefault(); doJump(); }, {passive: false});
+        
         init();
     </script>
 </body>
