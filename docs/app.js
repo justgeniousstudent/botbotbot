@@ -34,25 +34,28 @@ document.querySelectorAll('.game-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     if (!unlimited && timeLeft <= 0) { show('pay'); return; }
     
-    // Проверяем, какую игру нажали
-    if (btn.textContent.includes('Змейка')) {
-        // Загружаем игру Змейка в iframe
-        document.getElementById('game-box').innerHTML = `<iframe src="snake.html" style="width:100%; height:100%; border:none; border-radius:20px;"></iframe>`;
+    let gameContent = '';
+    const btnText = btn.textContent;
+    
+    if (btnText.includes('Змейка')) {
+        gameContent = `<iframe src="snake.html" style="width:100%; height:100%; border:none; border-radius:20px;"></iframe>`;
+    } else if (btnText.includes('Flappy')) {
+        gameContent = `<iframe src="flappy.html" style="width:100%; height:100%; border:none; border-radius:20px;"></iframe>`;
+    } else if (btnText.includes('2048')) {
+        gameContent = `<iframe src="2048.html" style="width:100%; height:100%; border:none; border-radius:20px;"></iframe>`;
+    } else if (btnText.includes('Тетрис')) {
+        gameContent = `<iframe src="tetris.html" style="width:100%; height:100%; border:none; border-radius:20px;"></iframe>`;
     } else {
-        // Для остальных игр показываем заглушку
-        document.getElementById('game-box').innerHTML = `
-            <h2>${btn.textContent}</h2>
-            <p>Игра будет здесь</p>
-        `;
+        gameContent = `<h2>${btnText}</h2><p>Игра будет здесь</p>`;
     }
     
+    document.getElementById('game-box').innerHTML = gameContent;
     show('game');
     startTimer();
   });
 });
 
 document.getElementById('back').addEventListener('click', () => {
-    // Очищаем iframe, чтобы игра остановилась, когда мы выходим в меню
     document.getElementById('game-box').innerHTML = '';
     show('menu');
 });
