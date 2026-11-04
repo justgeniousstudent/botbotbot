@@ -3,7 +3,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
-BOT_TOKEN = "СЮДА_ВСТАВЬ_ТОКЕН_ОТ_BOTFATHER"
+BOT_TOKEN = "9082465498:AAF7tQumBnwc6x_srZ89UyqxjwQt22r46r0"
 WEBAPP_URL = "https://ТВОЙ_ЛОГИН.github.io/ИМЯ_РЕПОЗИТОРИЯ/webapp/"
 
 logging.basicConfig(level=logging.INFO)
