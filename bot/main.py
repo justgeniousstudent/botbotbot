@@ -4,7 +4,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 BOT_TOKEN = "9082465498:AAF7tQumBnwc6x_srZ89UyqxjwQt22r46r0"
-WEBAPP_URL = "https://ТВОЙ_ЛОГИН.github.io/ИМЯ_РЕПОЗИТОРИЯ/webapp/"
+WEBAPP_URL = "https://justgeniousstudent.github.io/botbotbot/"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
