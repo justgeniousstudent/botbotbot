@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Твой токен вшит прямо сюда
 BOT_TOKEN = "9082465498:AAH9zejaIozcGEnGcxZb6CgAPD3eW8kksTE"
-WEBAPP_URL = "https://justgeniousstudent.github.io/botbotbot/webapp/index.html"
+WEBAPP_URL = "https://justgeniousstudent.github.io/botbotbot/"
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
