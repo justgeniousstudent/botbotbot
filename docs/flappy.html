@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Flappy Snowman</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: system-ui, sans-serif; touch-action: none; }
+        canvas { background: #1e293b; border-radius: 16px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); max-width: 95vw; max-height: 80vh; border: 4px solid #475569; }
+        .score { color: #f8fafc; font-size: 24px; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <canvas id="game"></canvas>
+    <div class="score" id="scoreDisplay">Счет: 0</div>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        
+        // Размеры под телефон
+        const size = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.7);
+        canvas.width = size * 0.6;
+        canvas.height = size;
+        
+        let bird, pipes, score, gameLoop, frames, isGameOver;
+
+        const gravity = 0.25;
+        const jump = -4.5;
+        const pipeWidth = 50;
+        const pipeGap = 120;
+        let pipeSpeed = 2.5;
+
+        function init() {
+            bird = { x: 50, y: canvas.height/2, width: 30, height: 30, velocity: 0 };
+            pipes = [];
+            score = 0;
+            frames = 0;
+            isGameOver = false;
+            document.getElementById('scoreDisplay').textContent = `Счет: ${score}`;
+            
+            if(gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 1000/60);
+        }
+
+        function update() {
+            if (isGameOver) return;
+
+            frames++;
+            bird.velocity += gravity;
+            bird.y += bird.velocity;
+
+            // Столкновение с полом/потолком
+            if (bird.y + bird.height > canvas.height || bird.y < 0) {
+                gameOver();
+            }
+
+            // Генерация труб
+            if (frames % 90 === 0) {
+                let minHeight = 50;
+                let maxHeight = canvas.height - pipeGap - 50;
+                let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+                pipes.push({ x: canvas.width, top: topHeight, bottom: canvas.height - topHeight - pipeGap, passed: false });
+            }
+
+            // Движение труб и проверка на очки
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                pipes[i].x -= pipeSpeed;
+
+                // Столкновение с трубой
+                if (bird.x < pipes[i].x + pipeWidth && bird.x + bird.width > pipes[i].x &&
+                    (bird.y < pipes[i].top || bird.y + bird.height > canvas.height - pipes[i].bottom)) {
+                    gameOver();
+                }
+
+                // Очко за пролет
+                if (pipes[i].x + pipeWidth < bird.x && !pipes[i].passed) {
+                    pipes[i].passed = true;
+                    score++;
+                    document.getElementById('scoreDisplay').textContent = `Счет: ${score}`;
+                }
+
+                // Удаление ушедших труб
+                if (pipes[i].x + pipeWidth < 0) {
+                    pipes.splice(i, 1);
+                }
+            }
+
+            draw();
+        }
+
+        function draw() {
+            ctx.fillStyle = "#1e293b";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Трубы (ледяные)
+            ctx.fillStyle = "#38bdf8";
+            pipes.forEach(p => {
+                ctx.fillRect(p.x, 0, pipeWidth, p.top);
+                ctx.fillRect(p.x, canvas.height - p.bottom, pipeWidth, p.bottom);
+                // Блик на льду
+                ctx.fillStyle = "#bae6fd";
+                ctx.fillRect(p.x + 5, 0, 10, p.top);
+                ctx.fillRect(p.x + 5, canvas.height - p.bottom, 10, p.bottom);
+                ctx.fillStyle = "#38bdf8";
+            });
+
+            // Птица (Снеговик)
+            ctx.font = "30px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("☃️", bird.x + bird.width/2, bird.y + bird.height/2);
+
+            // Game Over экран
+            if (isGameOver) {
+                ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#ef4444";
+                ctx.font = "bold 24px Arial";
+                ctx.fillText("Снеговик упал!", canvas.width/2, canvas.height/2 - 20);
+                ctx.fillStyle = "white";
+                ctx.font = "18px Arial";
+                ctx.fillText("Нажми, чтобы начать заново", canvas.width/2, canvas.height/2 + 20);
+            }
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            clearInterval(gameLoop);
+        }
+
+        // Управление (Прыжок)
+        function doJump() {
+            if (isGameOver) init();
+            else bird.velocity = jump;
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if(e.code === "Space" || e.key === "ArrowUp") {
+                e.preventDefault();
+                doJump();
+            }
+        });
+
+        canvas.addEventListener("mousedown", doJump);
+        canvas.addEventListener("touchstart", (e) => { e.preventDefault(); doJump(); }, {passive: false});
+
+        init();
+    </script>
+</body>
+</html>
