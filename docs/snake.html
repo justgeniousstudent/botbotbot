@@ -7,110 +7,67 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
-            background: #0f172a; /* Темное новогоднее небо */
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            font-family: system-ui, sans-serif;
-            overflow: hidden;
-            touch-action: none;
-            background-image: radial-gradient(circle, #1e293b 1px, transparent 1px);
-            background-size: 20px 20px;
+            background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            height: 100vh; font-family: system-ui, sans-serif; overflow: hidden; touch-action: none;
+            background-image: radial-gradient(circle, #1e293b 1px, transparent 1px); background-size: 20px 20px;
         }
         canvas { 
-            background: #2e4a28; /* Травяной фон поля */
-            border-radius: 16px; 
+            background: #2e4a28; border-radius: 16px; 
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.1), inset 0 0 40px rgba(0,0,0,0.5);
-            max-width: 95vw;
-            max-height: 60vh;
+            /* Убираем жесткие размеры, ставим проценты */
+            width: 90vw; height: 90vw; max-width: 90vh; max-height: 90vh;
             border: 4px solid #475569;
+            margin-bottom: 10px;
         }
         .controls {
-            display: grid;
-            grid-template-columns: 60px 60px 60px;
-            grid-template-rows: 60px 60px;
-            gap: 10px;
-            margin-top: 20px;
+            display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px; gap: 10px;
+            position: absolute; bottom: 20px;
         }
         .btn {
-            background: #1e293b;
-            color: #bae6fd;
-            border: 2px solid #38bdf8;
-            border-radius: 12px;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            user-select: none;
-            box-shadow: 0 4px 0 #0f172a;
-            transition: transform 0.1s, box-shadow 0.1s;
+            background: #1e293b; color: #bae6fd; border: 2px solid #38bdf8; border-radius: 12px;
+            font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+            user-select: none; box-shadow: 0 4px 0 #0f172a; transition: transform 0.1s;
         }
-        .btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 0px 0 #0f172a;
-        }
-        .btn-up { grid-column: 2; grid-row: 1; }
-        .btn-left { grid-column: 1; grid-row: 2; }
-        .btn-down { grid-column: 2; grid-row: 2; }
-        .btn-right { grid-column: 3; grid-row: 2; }
-        
-        .score {
-            color: #f8fafc;
-            font-size: 18px;
-            margin-top: 10px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #38bdf8;
-        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0px 0 #0f172a; }
+        .btn-up { grid-column: 2; grid-row: 1; } .btn-left { grid-column: 1; grid-row: 2; }
+        .btn-down { grid-column: 2; grid-row: 2; } .btn-right { grid-column: 3; grid-row: 2; }
+        .score { color: #f8fafc; font-size: 18px; margin-top: 10px; font-weight: bold; text-shadow: 0 0 10px #38bdf8; position: absolute; top: 20px; }
     </style>
 </head>
 <body>
-    <canvas id="game"></canvas>
     <div class="score" id="scoreDisplay">Счет: 0</div>
-    
+    <canvas id="game"></canvas>
     <div class="controls">
         <button class="btn btn-up" onclick="changeDir('UP')">❄️</button>
         <button class="btn btn-left" onclick="changeDir('LEFT')">❄️</button>
         <button class="btn btn-down" onclick="changeDir('DOWN')">❄️</button>
         <button class="btn btn-right" onclick="changeDir('RIGHT')">❄️</button>
     </div>
-
     <script>
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        
-        const size = Math.min(window.innerWidth * 0.9, 400);
-        canvas.width = size;
-        canvas.height = size;
-        
-        const box = size / 20; 
-        let snake, direction, nextDirection, food, score, gameLoop;
-        let flowers = [];
+        // Динамический размер
+        function resize() {
+            const size = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.75);
+            canvas.width = size;
+            canvas.height = size;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let box, snake, direction, nextDirection, food, score, gameLoop, flowers = [];
 
         function init() {
+            box = canvas.width / 20;
             snake = [{x: 10, y: 10}];
-            direction = "RIGHT";
-            nextDirection = "RIGHT";
-            food = { 
-                x: Math.floor(Math.random()*19), 
-                y: Math.floor(Math.random()*19) 
-            };
+            direction = "RIGHT"; nextDirection = "RIGHT";
+            food = { x: Math.floor(Math.random()*19), y: Math.floor(Math.random()*19) };
             score = 0;
             document.getElementById('scoreDisplay').textContent = `Счет: ${score}`;
-            
-            // Генерируем цветочки для фона
             flowers = [];
             for(let i=0; i<30; i++) {
-                flowers.push({
-                    x: Math.random() * size,
-                    y: Math.random() * size,
-                    color: Math.random() > 0.5 ? '#fbbf24' : '#f472b6', // Желтые и розовые
-                    size: Math.random() * 3 + 1
-                });
+                flowers.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, color: Math.random() > 0.5 ? '#fbbf24' : '#f472b6', size: Math.random() * 3 + 1 });
             }
-
             if(gameLoop) clearInterval(gameLoop);
             gameLoop = setInterval(draw, 120);
         }
@@ -124,142 +81,64 @@
 
         function draw() {
             direction = nextDirection;
-            
-            // Рисуем траву
-            ctx.fillStyle = "#2e4a28";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Рисуем цветочки
+            ctx.fillStyle = "#2e4a28"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             flowers.forEach(f => {
-                ctx.fillStyle = f.color;
-                ctx.beginPath();
-                ctx.arc(f.x, f.y, f.size, 0, Math.PI*2);
-                ctx.fill();
-                // Добавляем желтую серединку
-                ctx.fillStyle = "#fef08a";
-                ctx.beginPath();
-                ctx.arc(f.x, f.y, f.size/2, 0, Math.PI*2);
-                ctx.fill();
+                ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(f.x, f.y, f.size, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "#fef08a"; ctx.beginPath(); ctx.arc(f.x, f.y, f.size/2, 0, Math.PI*2); ctx.fill();
             });
-
-            // Рисуем подарок 🎁
-            ctx.font = `${box * 1.2}px Arial`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
+            ctx.font = `${box * 1.2}px Arial`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
             ctx.fillText("🎁", food.x * box + box/2, food.y * box + box/2);
 
-            // Рисуем змейку (зимняя)
             for(let i = 0; i < snake.length; i++) {
                 const isHead = i === 0;
-                
-                ctx.beginPath();
-                // Голова — ярко-голубая, тело — темнее
-                ctx.fillStyle = isHead ? "#38bdf8" : "#0ea5e9"; 
-                ctx.roundRect(snake[i].x * box + 2, snake[i].y * box + 2, box - 4, box - 4, 6);
-                ctx.fill();
-
-                // Глаза на голове
+                ctx.beginPath(); ctx.fillStyle = isHead ? "#38bdf8" : "#0ea5e9";
+                ctx.roundRect(snake[i].x * box + 2, snake[i].y * box + 2, box - 4, box - 4, 6); ctx.fill();
                 if (isHead) {
                     ctx.fillStyle = "#0f172a";
-                    let eyeX1, eyeY1, eyeX2, eyeY2;
-                    const cx = snake[i].x * box + box/2;
-                    const cy = snake[i].y * box + box/2;
-                    const offset = box * 0.2;
-
+                    let eyeX1, eyeY1, eyeX2, eyeY2; const cx = snake[i].x * box + box/2; const cy = snake[i].y * box + box/2; const offset = box * 0.2;
                     if (direction === "RIGHT") { eyeX1 = cx + offset; eyeY1 = cy - offset; eyeX2 = cx + offset; eyeY2 = cy + offset; }
                     if (direction === "LEFT") { eyeX1 = cx - offset; eyeY1 = cy - offset; eyeX2 = cx - offset; eyeY2 = cy + offset; }
                     if (direction === "UP") { eyeX1 = cx - offset; eyeY1 = cy - offset; eyeX2 = cx + offset; eyeY2 = cy - offset; }
                     if (direction === "DOWN") { eyeX1 = cx - offset; eyeY1 = cy + offset; eyeX2 = cx + offset; eyeY2 = cy + offset; }
-
                     ctx.beginPath(); ctx.arc(eyeX1, eyeY1, box*0.1, 0, Math.PI*2); ctx.fill();
                     ctx.beginPath(); ctx.arc(eyeX2, eyeY2, box*0.1, 0, Math.PI*2); ctx.fill();
                 }
             }
 
-            // Логика движения
-            let headX = snake[0].x;
-            let headY = snake[0].y;
-
-            if(direction === "LEFT") headX--;
-            if(direction === "UP") headY--;
-            if(direction === "RIGHT") headX++;
-            if(direction === "DOWN") headY++;
-
-            // Поедание подарка
+            let headX = snake[0].x; let headY = snake[0].y;
+            if(direction === "LEFT") headX--; if(direction === "UP") headY--; if(direction === "RIGHT") headX++; if(direction === "DOWN") headY++;
             if(headX === food.x && headY === food.y) {
-                score++;
-                document.getElementById('scoreDisplay').textContent = `Счет: ${score}`;
-                food = { 
-                    x: Math.floor(Math.random()*19), 
-                    y: Math.floor(Math.random()*19) 
-                };
-            } else {
-                snake.pop();
-            }
-
+                score++; document.getElementById('scoreDisplay').textContent = `Счет: ${score}`;
+                food = { x: Math.floor(Math.random()*19), y: Math.floor(Math.random()*19) };
+            } else { snake.pop(); }
             let newHead = { x: headX, y: headY };
-
-            // Столкновения
             if(headX < 0 || headX >= 20 || headY < 0 || headY >= 20 || collision(newHead, snake)) {
                 clearInterval(gameLoop);
-                
-                ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#38bdf8";
-                ctx.font = "bold 24px Arial";
-                ctx.fillText("Снеговик растаял!", canvas.width/2, canvas.height/2 - 20);
-                ctx.fillStyle = "white";
-                ctx.font = "18px Arial";
-                ctx.fillText(`Твой счет: ${score}`, canvas.width/2, canvas.height/2 + 20);
-                
-                setTimeout(init, 2500);
-                return;
+                ctx.fillStyle = "rgba(15, 23, 42, 0.9)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#38bdf8"; ctx.font = "bold 24px Arial"; ctx.fillText("Снеговик растаял!", canvas.width/2, canvas.height/2 - 20);
+                ctx.fillStyle = "white"; ctx.font = "18px Arial"; ctx.fillText(`Твой счет: ${score}`, canvas.width/2, canvas.height/2 + 20);
+                setTimeout(init, 2500); return;
             }
-
             snake.unshift(newHead);
         }
 
-        function collision(head, array) {
-            for(let i = 0; i < array.length; i++) {
-                if(head.x === array[i].x && head.y === array[i].y) return true;
-            }
-            return false;
-        }
+        function collision(head, array) { for(let i = 0; i < array.length; i++) { if(head.x === array[i].x && head.y === array[i].y) return true; } return false; }
 
-        // Управление клавиатурой
         document.addEventListener("keydown", (e) => {
             if(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
-            if(e.key === "ArrowLeft") changeDir("LEFT");
-            if(e.key === "ArrowUp") changeDir("UP");
-            if(e.key === "ArrowRight") changeDir("RIGHT");
-            if(e.key === "ArrowDown") changeDir("DOWN");
+            if(e.key === "ArrowLeft") changeDir("LEFT"); if(e.key === "ArrowUp") changeDir("UP");
+            if(e.key === "ArrowRight") changeDir("RIGHT"); if(e.key === "ArrowDown") changeDir("DOWN");
         });
 
-        // Свайпы
         let touchStartX = 0, touchStartY = 0;
-        canvas.addEventListener("touchstart", (e) => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }, {passive: true});
-
+        canvas.addEventListener("touchstart", (e) => { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }, {passive: true});
         canvas.addEventListener("touchend", (e) => {
             if(!touchStartX || !touchStartY) return;
-            let touchEndX = e.changedTouches[0].clientX;
-            let touchEndY = e.changedTouches[0].clientY;
-            
-            let dx = touchEndX - touchStartX;
-            let dy = touchEndY - touchStartY;
-
-            if(Math.abs(dx) > Math.abs(dy)) {
-                if(dx > 30) changeDir("RIGHT");
-                else if(dx < -30) changeDir("LEFT");
-            } else {
-                if(dy > 30) changeDir("DOWN");
-                else if(dy < -30) changeDir("UP");
-            }
+            let dx = e.changedTouches[0].clientX - touchStartX; let dy = e.changedTouches[0].clientY - touchStartY;
+            if(Math.abs(dx) > Math.abs(dy)) { if(dx > 30) changeDir("RIGHT"); else if(dx < -30) changeDir("LEFT"); } 
+            else { if(dy > 30) changeDir("DOWN"); else if(dy < -30) changeDir("UP"); }
             touchStartX = 0; touchStartY = 0;
         }, {passive: true});
-
         init();
     </script>
 </body>
