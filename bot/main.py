@@ -1,16 +1,17 @@
 import asyncio
 import logging
-import os
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiohttp import web
-
-# Токен берем из переменных окружения Render
-BOT_TOKEN = os.environ.get("9082465498:AAF7tQumBnwc6x_srZ89UyqxjwQt22r46r0")
-WEBAPP_URL = "https://justgeniousstudent.github.io/botbotbot/webapp/index.html"
+import os
 
 logging.basicConfig(level=logging.INFO)
+
+# Твой токен вшит прямо сюда
+BOT_TOKEN = "9082465498:AAF7tQumBnwc6x_srZ89Uyqxjw0t22r46r0"
+WEBAPP_URL = "https://justgeniousstudent.github.io/botbotbot/webapp/index.html"
+
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
@@ -21,12 +22,12 @@ async def start(message: types.Message):
     ])
     await message.answer("Первые 10 минут бесплатно.", reply_markup=kb)
 
-# --- Крошечный веб-сервер для Render ---
+# --- Заглушка-сервер для Render, чтобы он не ругался ---
 async def handle(request):
     return web.Response(text="Bot is running!")
 
 async def main():
-    # Запускаем веб-сервер на порту, который дает Render
+    # Запускаем веб-сервер на порту Render
     app = web.Application()
     app.router.add_get("/", handle)
     runner = web.AppRunner(app)
@@ -36,7 +37,8 @@ async def main():
     await site.start()
     logging.info(f"Веб-сервер запущен на порту {port}")
     
-    # Запускаем самого бота
+    # Запускаем бота
+    logging.info("Бот запускается...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
