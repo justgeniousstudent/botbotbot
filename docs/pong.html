@@ -7,7 +7,6 @@
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:#0f172a; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; touch-action:none; font-family:system-ui,sans-serif; }
-        
         canvas { background:#0f172a; border:4px solid #475569; border-radius:16px; box-shadow:0 0 30px rgba(56,189,248,0.2); display:none; }
         #menu { display:flex; flex-direction:column; gap:20px; align-items:center; z-index: 10; }
         h1 { color:#38bdf8; text-shadow:0 0 10px rgba(56,189,248,0.5); margin-bottom:20px; font-size: 32px; }
@@ -26,7 +25,7 @@
         const c = document.getElementById('c'), x = c.getContext('2d');
         c.width = Math.min(innerWidth * 0.9, 500); c.height = innerHeight * 0.8;
         let p1, p2, b, score1, score2, loop, isTwoPlayer = false;
-        let frames = 0, mountains = [];
+        let mountains = [], snow = [];
 
         function startGame(twoPlayer) {
             isTwoPlayer = twoPlayer;
@@ -40,19 +39,24 @@
             b = { x: c.width/2, y: c.height/2, r: 8, vx: 4, vy: 4 };
             score1 = 0; score2 = 0;
             
-            // Генерация гор
+            // Статичные горы
             mountains = [];
             let mX = 0;
             while(mX < c.width * 2) {
                 mountains.push({x: mX, w: Math.random()*80+50, h: Math.random()*100+80});
                 mX += Math.random()*50+30;
             }
+            
+            // Снег
+            snow = [];
+            for(let i=0; i<40; i++) {
+                snow.push({ x: Math.random() * c.width, y: Math.random() * c.height, r: Math.random() * 2 + 1, speed: Math.random() * 1 + 0.5 });
+            }
 
             if(loop) clearInterval(loop); loop = setInterval(update, 1000/60);
         }
 
         function update() {
-            frames++;
             b.x += b.vx; b.y += b.vy;
             if(b.y - b.r < 0 || b.y + b.r > c.height) b.vy *= -1;
             if(b.x - b.r < 20 && b.y > p1.y && b.y < p1.y + p1.h) { b.vx = Math.abs(b.vx) * 1.05; b.vy = ((b.y - (p1.y + p1.h/2)) / (p1.h/2)) * 6; }
@@ -64,6 +68,13 @@
                 if(b.vx > 0) { if(p2.y < target) p2.y += 4; if(p2.y > target) p2.y -= 4; }
                 if(p2.y < 0) p2.y = 0; if(p2.y + p2.h > c.height) p2.y = c.height - p2.h;
             }
+            
+            // Движение снега
+            snow.forEach(s => {
+                s.y += s.speed;
+                if(s.y > c.height) { s.y = 0; s.x = Math.random() * c.width; }
+            });
+            
             draw();
         }
 
@@ -79,19 +90,20 @@
             x.fillStyle = "#fef08a"; x.beginPath(); x.arc(c.width - 60, 60, 30, 0, Math.PI*2); x.fill();
             x.fillStyle = "rgba(254, 240, 138, 0.2)"; x.beginPath(); x.arc(c.width - 60, 60, 50, 0, Math.PI*2); x.fill();
 
-            // 3. Горы (Параллакс)
+            // 3. Статичные горы
             x.fillStyle = "#1e293b";
             mountains.forEach(m => {
-                let speed = isTwoPlayer ? 0 : 0.5; // В режиме 2 игроков горы стоят
-                let xPos = (m.x - frames * speed) % (c.width * 2);
-                if (xPos < -100) xPos += c.width * 2;
-                x.beginPath(); x.moveTo(xPos, c.height); x.lineTo(xPos + m.w/2, c.height - m.h); x.lineTo(xPos + m.w, c.height); x.fill();
+                x.beginPath(); x.moveTo(m.x, c.height); x.lineTo(m.x + m.w/2, c.height - m.h); x.lineTo(m.x + m.w, c.height); x.fill();
             });
 
-            // 4. Сетка
+            // 4. Снег
+            x.fillStyle = "rgba(255, 255, 255, 0.6)";
+            snow.forEach(s => { x.beginPath(); x.arc(s.x, s.y, s.r, 0, Math.PI*2); x.fill(); });
+
+            // 5. Сетка
             x.fillStyle = "rgba(51, 65, 85, 0.5)"; x.fillRect(c.width/2 - 2, 0, 4, c.height);
 
-            // 5. Ракетки и Мяч
+            // 6. Ракетки и Мяч
             x.fillStyle = "#38bdf8"; x.shadowBlur = 10; x.shadowColor = "#38bdf8";
             x.fillRect(10, p1.y, p1.w, p1.h); x.fillRect(c.width - 20, p2.y, p2.w, p2.h);
             x.fillStyle = "white"; x.beginPath(); x.arc(b.x, b.y, b.r, 0, Math.PI*2); x.fill();
