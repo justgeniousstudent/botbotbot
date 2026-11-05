@@ -7,38 +7,38 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0f172a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: none; }
-        .snow { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
-        .snowflake { position: absolute; top: -10px; color: #bae6fd; font-size: 1.5em; opacity: 0.4; animation: fall linear infinite; }
-        @keyframes fall { to { transform: translateY(100vh); } }
-        canvas { background: #1e293b; border: 4px solid #475569; border-radius: 16px; box-shadow: 0 0 30px rgba(56,189,248,0.2); }
+        canvas { border: 4px solid #475569; border-radius: 16px; box-shadow: 0 0 30px rgba(56,189,248,0.2); }
     </style>
 </head>
 <body>
-    <div class="snow" id="snow"></div>
     <canvas id="c"></canvas>
     <script>
-        const snowContainer = document.getElementById('snow');
-        for (let i = 0; i < 40; i++) {
-            let flake = document.createElement('div'); flake.className = 'snowflake'; flake.innerHTML = '❄';
-            flake.style.left = Math.random() * 100 + 'vw'; flake.style.animationDuration = (Math.random() * 3 + 2) + 's';
-            flake.style.animationDelay = Math.random() * 5 + 's'; snowContainer.appendChild(flake);
-        }
-
         const c = document.getElementById('c'), x = c.getContext('2d');
         c.width = Math.min(innerWidth * 0.9, 500); c.height = innerHeight * 0.8;
         let ball, paddle, bricks, loop, score, gameOver;
         const bR = 8, pW = 80, pH = 10, cW = 45, cH = 15, pC = 6, rC = 4;
+        let frames = 0, mountains = [];
 
         function init() {
             paddle = {x: c.width/2-pW/2, y: c.height-30, w: pW, h: pH};
             ball = {x: c.width/2, y: c.height-50, r: bR, vx: 4, vy: -4};
             bricks = []; score = 0; gameOver = false;
             for(let r=0; r<rC; r++) { for(let j=0; j<pC; j++) { bricks.push({x: j*(cW+5)+20, y: r*(cH+5)+30, w: cW, h: cH, alive: true}) } }
+            
+            // Генерация гор
+            mountains = [];
+            let mX = 0;
+            while(mX < c.width * 2) {
+                mountains.push({x: mX, w: Math.random()*80+50, h: Math.random()*100+80});
+                mX += Math.random()*50+30;
+            }
+
             if(loop) clearInterval(loop); loop = setInterval(update, 1000/60);
         }
 
         function update() {
             if(gameOver) return;
+            frames++;
             ball.x += ball.vx; ball.y += ball.vy;
             if(ball.x-bR<0 || ball.x+bR>c.width) ball.vx *= -1;
             if(ball.y-bR<0) ball.vy *= -1;
@@ -50,12 +50,35 @@
         }
 
         function draw() {
-            x.fillStyle = "#1e293b"; x.fillRect(0, 0, c.width, c.height);
-            x.fillStyle = "#38bdf8"; x.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
-            x.fillStyle = "white"; x.shadowBlur = 10; x.shadowColor = "#38bdf8"; x.beginPath(); x.arc(ball.x, ball.y, bR, 0, Math.PI*2); x.fill(); x.shadowBlur = 0;
+            // 1. Небо
+            let skyGrad = x.createLinearGradient(0, 0, 0, c.height);
+            skyGrad.addColorStop(0, "#0f172a"); skyGrad.addColorStop(1, "#1e3a8a");
+            x.fillStyle = skyGrad; x.fillRect(0, 0, c.width, c.height);
+
+            // 2. Луна
+            x.fillStyle = "#fef08a"; x.beginPath(); x.arc(c.width - 60, 60, 30, 0, Math.PI*2); x.fill();
+            x.fillStyle = "rgba(254, 240, 138, 0.2)"; x.beginPath(); x.arc(c.width - 60, 60, 50, 0, Math.PI*2); x.fill();
+
+            // 3. Горы (Параллакс)
+            x.fillStyle = "#1e293b";
+            mountains.forEach(m => {
+                let xPos = (m.x - frames * 0.5) % (c.width * 2);
+                if (xPos < -100) xPos += c.width * 2;
+                x.beginPath(); x.moveTo(xPos, c.height); x.lineTo(xPos + m.w/2, c.height - m.h); x.lineTo(xPos + m.w, c.height); x.fill();
+            });
+
+            // 4. Ракетка
+            x.fillStyle = "#38bdf8"; x.shadowBlur = 10; x.shadowColor = "#38bdf8";
+            x.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+            
+            // 5. Мяч
+            x.fillStyle = "white"; x.beginPath(); x.arc(ball.x, ball.y, bR, 0, Math.PI*2); x.fill(); x.shadowBlur = 0;
+            
+            // 6. Блоки
             for(let b of bricks) { if(b.alive) { x.fillStyle = b.y<100?"#bae6fd":b.y<200?"#7dd3fc":"#38bdf8"; x.fillRect(b.x, b.y, b.w, b.h); } }
+            
             x.fillStyle = "#94a3b8"; x.font = "20px Arial"; x.fillText("Счет: "+score, 20, 20);
-            if(gameOver) { x.fillStyle = "rgba(0,0,0,0.8)"; x.fillRect(0, 0, c.width, c.height); x.fillStyle = "#ef4444"; x.font = "24px Arial"; x.fillText("Игра окончена!", c.width/2-80, c.height/2) }
+            if(gameOver) { x.fillStyle = "rgba(15, 23, 42, 0.8)"; x.fillRect(0, 0, c.width, c.height); x.fillStyle = "#ef4444"; x.font = "24px Arial"; x.fillText("Игра окончена!", c.width/2-80, c.height/2) }
         }
 
         document.addEventListener('mousemove', e => { let r = c.getBoundingClientRect(); paddle.x = e.clientX-r.left-pW/2; if(paddle.x<0) paddle.x=0; if(paddle.x+pW>c.width) paddle.x=c.width-pW });
