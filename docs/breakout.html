@@ -17,7 +17,7 @@
         c.width = Math.min(innerWidth * 0.9, 500); c.height = innerHeight * 0.8;
         let ball, paddle, bricks, loop, score, gameOver;
         const bR = 8, pW = 80, pH = 10, cW = 45, cH = 15, pC = 6, rC = 4;
-        let frames = 0, mountains = [];
+        let snow = [];
 
         function init() {
             paddle = {x: c.width/2-pW/2, y: c.height-30, w: pW, h: pH};
@@ -25,12 +25,10 @@
             bricks = []; score = 0; gameOver = false;
             for(let r=0; r<rC; r++) { for(let j=0; j<pC; j++) { bricks.push({x: j*(cW+5)+20, y: r*(cH+5)+30, w: cW, h: cH, alive: true}) } }
             
-            // Генерация гор
-            mountains = [];
-            let mX = 0;
-            while(mX < c.width * 2) {
-                mountains.push({x: mX, w: Math.random()*80+50, h: Math.random()*100+80});
-                mX += Math.random()*50+30;
+            // Генерация снега
+            snow = [];
+            for(let i=0; i<50; i++) {
+                snow.push({ x: Math.random() * c.width, y: Math.random() * c.height, r: Math.random() * 2 + 1, speed: Math.random() * 1 + 0.5 });
             }
 
             if(loop) clearInterval(loop); loop = setInterval(update, 1000/60);
@@ -38,7 +36,6 @@
 
         function update() {
             if(gameOver) return;
-            frames++;
             ball.x += ball.vx; ball.y += ball.vy;
             if(ball.x-bR<0 || ball.x+bR>c.width) ball.vx *= -1;
             if(ball.y-bR<0) ball.vy *= -1;
@@ -46,26 +43,32 @@
             if(ball.y > c.height) { gameOver = true; setTimeout(init, 1500); }
             for(let b of bricks) { if(b.alive && ball.x>b.x && ball.x<b.x+b.w && ball.y>b.y && ball.y<b.y+b.h) { b.alive = false; ball.vy *= -1; score += 10; break; } }
             if(bricks.every(b => !b.alive)) { setTimeout(init, 1000); }
+            
+            // Движение снега
+            snow.forEach(s => {
+                s.y += s.speed;
+                if(s.y > c.height) { s.y = 0; s.x = Math.random() * c.width; }
+            });
+            
             draw();
         }
 
         function draw() {
-            // 1. Небо
+            // 1. Небо (Градиент)
             let skyGrad = x.createLinearGradient(0, 0, 0, c.height);
             skyGrad.addColorStop(0, "#0f172a"); skyGrad.addColorStop(1, "#1e3a8a");
             x.fillStyle = skyGrad; x.fillRect(0, 0, c.width, c.height);
 
-            // 2. Луна
-            x.fillStyle = "#fef08a"; x.beginPath(); x.arc(c.width - 60, 60, 30, 0, Math.PI*2); x.fill();
-            x.fillStyle = "rgba(254, 240, 138, 0.2)"; x.beginPath(); x.arc(c.width - 60, 60, 50, 0, Math.PI*2); x.fill();
+            // 2. Звезды (статические)
+            x.fillStyle = "rgba(255, 255, 255, 0.2)";
+            for(let i=0; i<40; i++) {
+                let sx = (i * 37) % c.width; let sy = (i * 71) % (c.height / 2);
+                x.fillRect(sx, sy, 2, 2);
+            }
 
-            // 3. Горы (Параллакс)
-            x.fillStyle = "#1e293b";
-            mountains.forEach(m => {
-                let xPos = (m.x - frames * 0.5) % (c.width * 2);
-                if (xPos < -100) xPos += c.width * 2;
-                x.beginPath(); x.moveTo(xPos, c.height); x.lineTo(xPos + m.w/2, c.height - m.h); x.lineTo(xPos + m.w, c.height); x.fill();
-            });
+            // 3. Снег
+            x.fillStyle = "rgba(255, 255, 255, 0.5)";
+            snow.forEach(s => { x.beginPath(); x.arc(s.x, s.y, s.r, 0, Math.PI*2); x.fill(); });
 
             // 4. Ракетка
             x.fillStyle = "#38bdf8"; x.shadowBlur = 10; x.shadowColor = "#38bdf8";
@@ -74,7 +77,7 @@
             // 5. Мяч
             x.fillStyle = "white"; x.beginPath(); x.arc(ball.x, ball.y, bR, 0, Math.PI*2); x.fill(); x.shadowBlur = 0;
             
-            // 6. Блоки
+            // 6. Блоки (Ледяные)
             for(let b of bricks) { if(b.alive) { x.fillStyle = b.y<100?"#bae6fd":b.y<200?"#7dd3fc":"#38bdf8"; x.fillRect(b.x, b.y, b.w, b.h); } }
             
             x.fillStyle = "#94a3b8"; x.font = "20px Arial"; x.fillText("Счет: "+score, 20, 20);
