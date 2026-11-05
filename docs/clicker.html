@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"><title>Кликер</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f172a;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;font-family:system-ui,sans-serif;overflow:hidden;user-select:none;touch-action:none;color:white}
+.gift{font-size:100px;cursor:pointer;transition:transform 0.1s;filter:drop-shadow(0 0 20px rgba(56,189,248,0.5))}.gift:active{transform:scale(0.9)}
+.score{font-size:32px;font-weight:bold;margin-bottom:20px;color:#38bdf8}.time{font-size:20px;color:#94a3b8;margin-top:20px}</style></head>
+<body>
+<div class="score" id="s">Очки: 0</div>
+<div class="gift" id="g">🎁</div>
+<div class="time" id="t">Время: 15с</div>
+<script>
+let score=0,time=15,loop;
+function init(){score=0;time=15;document.getElementById('s').textContent='Очки: 0';document.getElementById('t').textContent='Время: 15с';
+if(loop)clearInterval(loop);loop=setInterval(()=>{time--;document.getElementById('t').textContent='Время: '+time+'с';if(time<=0){clearInterval(loop);setTimeout(()=>{alert('Твой рекорд: '+score);init()},100)}},1000)}
+document.getElementById('g').onclick=()=>{if(time>0){score++;document.getElementById('s').textContent='Очки: '+score}};
+init();
+</script></body></html>
