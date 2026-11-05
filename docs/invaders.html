@@ -1,34 +1,92 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"><title>Инвейдеры</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f172a;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;overflow:hidden;touch-action:none}canvas{background:#1e293b;border:4px solid #475569;border-radius:16px}
-.ctrl{display:flex;gap:20px;margin-top:15px}.b{background:#1e293b;color:#bae6fd;border:2px solid #38bdf8;border-radius:12px;width:60px;height:60px;font-size:24px;display:flex;align-items:center;justify-content:center;user-select:none;box-shadow:0 4px 0 #0f172a}.b:active{transform:translateY(4px);box-shadow:none}</style></head>
-<body><canvas id="c"></canvas><div class="ctrl"><div class="b" id="l">←</div><div class="b" id="f">🔥</div><div class="b" id="r">→</div></div>
-<script>
-const c=document.getElementById('c'),x=c.getContext('2d');c.width=Math.min(innerWidth*0.9,400);c.height=innerHeight*0.7;
-let player,bullets,aliens,aliensDir,loop,score,gameOver;
-function init(){player={x:c.width/2-15,y:c.height-40,w:30,h:30,speed:5};bullets=[];aliens=[];aliensDir=1;score=0;gameOver=false;
-for(let r=0;r<4;r++){for(let j=0;j<6;j++){aliens.push({x:j*40+30,y:r*40+40,w:30,h:30,alive:true})}}
-if(loop)clearInterval(loop);loop=setInterval(update,1000/60)}
-function update(){if(gameOver)return;
-bullets.forEach(b=>b.y-=7);bullets=bullets.filter(b=>b.y>0);
-let edge=false;aliens.forEach(a=>{if(!a.alive)return;a.x+=aliensDir*1.5;if(a.x<10||a.x+a.w>c.width-10)edge=true;
-for(let b of bullets){if(b.x>a.x&&b.x<a.x+a.w&&b.y>a.y&&b.y<a.y+a.h){a.alive=false;b.y=-100;score+=10}}
-if(a.y+a.h>player.y){gameOver=true;setTimeout(init,1500)}});
-if(edge){aliensDir*=-1;aliens.forEach(a=>a.y+=15)}
-if(aliens.filter(a=>a.alive).length===0){setTimeout(init,1000)}
-draw()}
-function draw(){x.fillStyle="#1e293b";x.fillRect(0,0,c.width,c.height);
-x.fillStyle="#38bdf8";x.fillRect(player.x,player.y,player.w,player.h);
-x.fillStyle="white";bullets.forEach(b=>{x.beginPath();x.arc(b.x,b.y,3,0,Math.PI*2);x.fill()});
-aliens.forEach(a=>{if(a.alive){x.font="24px Arial";x.fillText("👾",a.x,a.y+25)}});
-x.fillStyle="#94a3b8";x.font="20px Arial";x.fillText("Счет: "+score,10,25);
-if(gameOver){x.fillStyle="rgba(0,0,0,0.8)";x.fillRect(0,0,c.width,c.height);x.fillStyle="#ef4444";x.font="24px Arial";x.fillText("Игра окончена!",c.width/2-80,c.height/2)}}
-document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')player.x-=player.speed;if(e.key==='ArrowRight')player.x+=player.speed;if(e.key===' '){e.preventDefault();bullets.push({x:player.x+15,y:player.y})}});
-const l=document.getElementById('l'),r=document.getElementById('r'),f=document.getElementById('f');
-let interval;
-l.addEventListener('mousedown',()=>interval=setInterval(()=>player.x-=player.speed,50));l.addEventListener('mouseup',()=>clearInterval(interval));
-r.addEventListener('mousedown',()=>interval=setInterval(()=>player.x+=player.speed,50));r.addEventListener('mouseup',()=>clearInterval(interval));
-f.addEventListener('click',()=>bullets.push({x:player.x+15,y:player.y}));
-c.addEventListener('touchmove',e=>{e.preventDefault();let rect=c.getBoundingClientRect();player.x=e.touches[0].clientX-rect.left-player.w/2;if(player.x<0)player.x=0;if(player.x+player.w>c.width)player.x=c.width-player.w},{passive:false});
-init();
-</script></body></html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Инвейдеры</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0f172a; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: none; }
+        /* Снег */
+        .snow { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .snowflake { position: absolute; top: -10px; color: #bae6fd; font-size: 1.5em; opacity: 0.4; animation: fall linear infinite; }
+        @keyframes fall { to { transform: translateY(100vh); } }
+
+        canvas { background: #1e293b; border: 4px solid #475569; border-radius: 16px; box-shadow: 0 0 30px rgba(56,189,248,0.2); }
+        .ctrl { display: flex; gap: 20px; margin-top: 15px; }
+        .b { background: #1e293b; color: #bae6fd; border: 2px solid #38bdf8; border-radius: 12px; width: 60px; height: 60px; font-size: 24px; display: flex; align-items: center; justify-content: center; user-select: none; box-shadow: 0 4px 0 #0f172a; }
+        .b:active { transform: translateY(4px); box-shadow: none; }
+    </style>
+</head>
+<body>
+    <div class="snow" id="snow"></div>
+    <canvas id="c"></canvas>
+    <div class="ctrl"><div class="b" id="l">←</div><div class="b" id="f">🔥</div><div class="b" id="r">→</div></div>
+    <script>
+        // Генерация снега
+        const snowContainer = document.getElementById('snow');
+        for (let i = 0; i < 40; i++) {
+            let flake = document.createElement('div');
+            flake.className = 'snowflake';
+            flake.innerHTML = '❄';
+            flake.style.left = Math.random() * 100 + 'vw';
+            flake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            flake.style.animationDelay = Math.random() * 5 + 's';
+            snowContainer.appendChild(flake);
+        }
+
+        const c = document.getElementById('c'), x = c.getContext('2d');
+        c.width = Math.min(innerWidth * 0.9, 400); c.height = innerHeight * 0.7;
+        let player, bullets, aliens, aliensDir, loop, score, gameOver;
+
+        function init() {
+            player = { x: c.width/2-15, y: c.height-40, w: 30, h: 30, speed: 5 };
+            bullets = []; aliens = []; aliensDir = 1; score = 0; gameOver = false;
+            for(let r=0; r<4; r++) { for(let j=0; j<6; j++) { aliens.push({x: j*40+30, y: r*40+40, w: 30, h: 30, alive: true}) } }
+            if(loop) clearInterval(loop); loop = setInterval(update, 1000/60);
+        }
+
+        function update() {
+            if(gameOver) return;
+            bullets.forEach(b => b.y -= 7); bullets = bullets.filter(b => b.y > 0);
+            let edge = false;
+            aliens.forEach(a => {
+                if(!a.alive) return;
+                a.x += aliensDir * 1.5;
+                if(a.x < 10 || a.x + a.w > c.width - 10) edge = true;
+                for(let b of bullets) {
+                    if(b.x > a.x && b.x < a.x + a.w && b.y > a.y && b.y < a.y + a.h) { a.alive = false; b.y = -100; score += 10; }
+                }
+                if(a.y + a.h > player.y) { gameOver = true; setTimeout(init, 1500) }
+            });
+            if(edge) { aliensDir *= -1; aliens.forEach(a => a.y += 15) }
+            if(aliens.filter(a => a.alive).length === 0) { setTimeout(init, 1000) }
+            draw();
+        }
+
+        function draw() {
+            x.fillStyle = "#1e293b"; x.fillRect(0, 0, c.width, c.height);
+            x.fillStyle = "#38bdf8"; x.fillRect(player.x, player.y, player.w, player.h);
+            x.fillStyle = "white"; x.shadowBlur = 10; x.shadowColor = "#38bdf8";
+            bullets.forEach(b => { x.beginPath(); x.arc(b.x, b.y, 3, 0, Math.PI*2); x.fill() });
+            x.shadowBlur = 0;
+            aliens.forEach(a => { if(a.alive) { x.font = "24px Arial"; x.fillText("👾", a.x, a.y+25) } });
+            x.fillStyle = "#94a3b8"; x.font = "20px Arial"; x.fillText("Счет: " + score, 10, 25);
+            if(gameOver) { x.fillStyle = "rgba(0,0,0,0.8)"; x.fillRect(0, 0, c.width, c.height); x.fillStyle = "#ef4444"; x.font = "24px Arial"; x.fillText("Игра окончена!", c.width/2-80, c.height/2) }
+        }
+
+        document.addEventListener('keydown', e => {
+            if(e.key === 'ArrowLeft') player.x -= player.speed;
+            if(e.key === 'ArrowRight') player.x += player.speed;
+            if(e.key === ' ') { e.preventDefault(); bullets.push({x: player.x+15, y: player.y}) }
+        });
+        const l = document.getElementById('l'), r = document.getElementById('r'), f = document.getElementById('f');
+        let interval;
+        l.addEventListener('mousedown', () => interval = setInterval(() => player.x -= player.speed, 50)); l.addEventListener('mouseup', () => clearInterval(interval));
+        r.addEventListener('mousedown', () => interval = setInterval(() => player.x += player.speed, 50)); r.addEventListener('mouseup', () => clearInterval(interval));
+        f.addEventListener('click', () => bullets.push({x: player.x+15, y: player.y}));
+        c.addEventListener('touchmove', e => { e.preventDefault(); let rect = c.getBoundingClientRect(); player.x = e.touches[0].clientX - rect.left - player.w/2; if(player.x<0) player.x=0; if(player.x+player.w>c.width) player.x=c.width-player.w }, {passive: false});
+        init();
+    </script>
+</body>
+</html>
