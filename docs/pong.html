@@ -1,19 +1,132 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"><title>Понг</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f172a;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;touch-action:none}canvas{background:#1e293b;border:4px solid #475569;border-radius:16px;box-shadow:0 0 30px rgba(56,189,248,0.2)}</style></head>
-<body><canvas id="c"></canvas>
-<script>
-const c=document.getElementById('c'),x=c.getContext('2d');c.width=Math.min(innerWidth*0.9,600);c.height=innerHeight*0.85;
-let p1,p2,b,score1,score2,loop;
-function init(){p1={y:c.height/2-40,h:80,w:10};p2={y:c.height/2-40,h:80,w:10};b={x:c.width/2,y:c.height/2,r:8,vx:4,vy:4};score1=0;score2=0;if(loop)clearInterval(loop);loop=setInterval(update,1000/60)}
-function update(){b.x+=b.vx;b.y+=b.vy;if(b.y-b.r<0||b.y+b.r>c.height)b.vy*=-1;
-if(b.x-b.r<20&&b.y>p1.y&&b.y<p1.y+p1.h)b.vx=Math.abs(b.vx);if(b.x+b.r>c.width-20&&b.y>p2.y&&b.y<p2.y+p2.h)b.vx=-Math.abs(b.vx);
-if(b.x<0){score2++;reset()}if(b.x>c.width){score1++;reset()}draw()}
-function reset(){b.x=c.width/2;b.y=c.height/2;b.vx=(Math.random()>0.5?1:-1)*4;b.vy=(Math.random()>0.5?1:-1)*4}
-function draw(){x.fillStyle="#1e293b";x.fillRect(0,0,c.width,c.height);x.fillStyle="#334155";x.fillRect(c.width/2-2,0,4,c.height);
-x.fillStyle="#38bdf8";x.fillRect(10,p1.y,p1.w,p1.h);x.fillRect(c.width-20,p2.y,p2.w,p2.h);x.fillStyle="white";x.beginPath();x.arc(b.x,b.y,b.r,0,Math.PI*2);x.fill();
-x.fillStyle="#94a3b8";x.font="20px Arial";x.fillText(score1,c.width/4,30);x.fillText(score2,c.width*0.75,30)}
-document.addEventListener('mousemove',e=>{let r=c.getBoundingClientRect();p1.y=e.clientY-r.top-p1.h/2;if(p1.y<0)p1.y=0;if(p1.y+p1.h>c.height)p1.y=c.height-p1.h});
-let ts=0;c.addEventListener('touchstart',e=>{ts=e.touches[0].clientY});c.addEventListener('touchmove',e=>{e.preventDefault();let r=c.getBoundingClientRect();let y=e.touches[0].clientY-r.top;p1.y=y-p1.h/2;if(p1.y<0)p1.y=0;if(p1.y+p1.h>c.height)p1.y=c.height-p1.h},{passive:false});
-init();
-</script></body></html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Понг</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#0f172a; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; touch-action:none; font-family:system-ui,sans-serif; background-image: radial-gradient(circle, #1e293b 1px, transparent 1px); background-size: 20px 20px; }
+        canvas { background:#1e293b; border:4px solid #475569; border-radius:16px; box-shadow:0 0 30px rgba(56,189,248,0.2); display:none; }
+        
+        #menu { display:flex; flex-direction:column; gap:20px; align-items:center; }
+        h1 { color:#38bdf8; text-shadow:0 0 10px rgba(56,189,248,0.5); margin-bottom:20px; }
+        button { background:#1e293b; color:#bae6fd; border:2px solid #38bdf8; border-radius:12px; padding:15px 30px; font-size:18px; font-weight:bold; cursor:pointer; transition:0.2s; }
+        button:active { transform:scale(0.95); background:#2b5278; }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <h1>🏓 Понг</h1>
+        <button onclick="startGame(false)">🤖 Против бота</button>
+        <button onclick="startGame(true)">👥 На двоих</button>
+    </div>
+    <canvas id="c"></canvas>
+    <script>
+        const c = document.getElementById('c'), x = c.getContext('2d');
+        c.width = Math.min(innerWidth * 0.9, 500);
+        c.height = innerHeight * 0.8;
+        
+        let p1, p2, b, score1, score2, loop, isTwoPlayer = false;
+
+        function startGame(twoPlayer) {
+            isTwoPlayer = twoPlayer;
+            document.getElementById('menu').style.display = 'none';
+            c.style.display = 'block';
+            init();
+        }
+
+        function init() {
+            p1 = { y: c.height/2 - 40, h: 80, w: 10 };
+            p2 = { y: c.height/2 - 40, h: 80, w: 10 };
+            b = { x: c.width/2, y: c.height/2, r: 8, vx: 4, vy: 4, speed: 5 };
+            score1 = 0; score2 = 0;
+            if(loop) clearInterval(loop);
+            loop = setInterval(update, 1000/60);
+        }
+
+        function update() {
+            b.x += b.vx; b.y += b.vy;
+            
+            if(b.y - b.r < 0 || b.y + b.r > c.height) b.vy *= -1;
+            if(b.x - b.r < 20 && b.y > p1.y && b.y < p1.y + p1.h) {
+                b.vx = Math.abs(b.vx) * 1.05; // Ускоряем мяч
+                let hit = (b.y - (p1.y + p1.h/2)) / (p1.h/2);
+                b.vy = hit * 6;
+            }
+            if(b.x + b.r > c.width - 20 && b.y > p2.y && b.y < p2.y + p2.h) {
+                b.vx = -Math.abs(b.vx) * 1.05;
+                let hit = (b.y - (p2.y + p2.h/2)) / (p2.h/2);
+                b.vy = hit * 6;
+            }
+
+            if(b.x < 0) { score2++; resetBall(); }
+            if(b.x > c.width) { score1++; resetBall(); }
+
+            // ИИ для второй ракетки
+            if(!isTwoPlayer) {
+                let target = b.y - p2.h/2;
+                if(b.vx > 0) { // Двигается только когда мяч летит к нему
+                    if(p2.y < target) p2.y += 4;
+                    if(p2.y > target) p2.y -= 4;
+                }
+                if(p2.y < 0) p2.y = 0;
+                if(p2.y + p2.h > c.height) p2.y = c.height - p2.h;
+            }
+            draw();
+        }
+
+        function resetBall() {
+            b.x = c.width/2; b.y = c.height/2;
+            b.vx = (Math.random() > 0.5 ? 1 : -1) * 4;
+            b.vy = (Math.random() > 0.5 ? 1 : -1) * 4;
+        }
+
+        function draw() {
+            x.fillStyle = "#1e293b"; x.fillRect(0, 0, c.width, c.height);
+            x.fillStyle = "#334155"; x.fillRect(c.width/2 - 2, 0, 4, c.height); // Сетка
+            x.fillStyle = "#38bdf8"; x.fillRect(10, p1.y, p1.w, p1.h);
+            x.fillStyle = "#38bdf8"; x.fillRect(c.width - 20, p2.y, p2.w, p2.h);
+            x.fillStyle = "white"; x.beginPath(); x.arc(b.x, b.y, b.r, 0, Math.PI*2); x.fill();
+            x.fillStyle = "#94a3b8"; x.font = "30px Arial"; x.fillText(score1, c.width/4, 40); x.fillText(score2, c.width*0.75, 40);
+        }
+
+        // Управление мышью (Только для 1 игрока)
+        document.addEventListener('mousemove', e => {
+            if(isTwoPlayer) return;
+            let r = c.getBoundingClientRect();
+            p1.y = e.clientY - r.top - p1.h/2;
+            if(p1.y < 0) p1.y = 0; if(p1.y + p1.h > c.height) p1.y = c.height - p1.h;
+        });
+
+        // Управление клавиатурой
+        document.addEventListener('keydown', e => {
+            if(e.key === 'w' || e.key === 'W') p1.y -= 30;
+            if(e.key === 's' || e.key === 'S') p1.y += 30;
+            if(e.key === 'ArrowUp') p2.y -= 30;
+            if(e.key === 'ArrowDown') p2.y += 30;
+            
+            // Ограничители
+            if(p1.y < 0) p1.y = 0; if(p1.y + p1.h > c.height) p1.y = c.height - p1.h;
+            if(p2.y < 0) p2.y = 0; if(p2.y + p2.h > c.height) p2.y = c.height - p2.h;
+        });
+
+        // Сенсорное управление (Две половины экрана)
+        c.addEventListener('touchmove', e => {
+            e.preventDefault();
+            let r = c.getBoundingClientRect();
+            Array.from(e.touches).forEach(touch => {
+                let touchX = touch.clientX - r.left;
+                let touchY = touch.clientY - r.top;
+                if(touchX < c.width / 2) { // Левая половина - Игрок 1
+                    p1.y = touchY - p1.h/2;
+                    if(p1.y < 0) p1.y = 0; if(p1.y + p1.h > c.height) p1.y = c.height - p1.h;
+                } else if(isTwoPlayer) { // Правая половина - Игрок 2
+                    p2.y = touchY - p2.h/2;
+                    if(p2.y < 0) p2.y = 0; if(p2.y + p2.h > c.height) p2.y = c.height - p2.h;
+                }
+            });
+        }, {passive: false});
+    </script>
+</body>
+</html>
