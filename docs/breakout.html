@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"><title>Арканоид</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f172a;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;touch-action:none}canvas{background:#1e293b;border:4px solid #475569;border-radius:16px}</style></head>
+<body><canvas id="c"></canvas>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');c.width=Math.min(innerWidth*0.9,500);c.height=innerHeight*0.85;
+let ball,paddle,bricks,loop,score,gameOver;
+const bR=8,pW=80,pH=10,cW=45,cH=15,pC=6,rC=4;
+function init(){paddle={x:c.width/2-pW/2,y:c.height-30,w:pW,h:pH};ball={x:c.width/2,y:c.height-50,r:bR,vx:4,vy:-4};bricks=[];score=0;gameOver=false;
+for(let r=0;r<rC;r++){for(let j=0;j<pC;j++){bricks.push({x:j*(cW+5)+20,y:r*(cH+5)+30,w:cW,h:cH,alive:true})}}
+if(loop)clearInterval(loop);loop=setInterval(update,1000/60)}
+function update(){if(gameOver)return;ball.x+=ball.vx;ball.y+=ball.vy;
+if(ball.x-bR<0||ball.x+bR>c.width)ball.vx*=-1;if(ball.y-bR<0)ball.vy*=-1;
+if(ball.y+bR>paddle.y&&ball.x>paddle.x&&ball.x<paddle.x+pW){ball.vy=-Math.abs(ball.vy);let hit=(ball.x-(paddle.x+pW/2))/(pW/2);ball.vx=hit*5}
+if(ball.y>c.height){gameOver=true;setTimeout(init,1500)}
+for(let b of bricks){if(b.alive&&ball.x>b.x&&ball.x<b.x+b.w&&ball.y>b.y&&ball.y<b.y+b.h){b.alive=false;ball.vy*=-1;score+=10;break}}
+if(bricks.every(b=>!b.alive)){setTimeout(init,1000)}
+draw()}
+function draw(){x.fillStyle="#1e293b";x.fillRect(0,0,c.width,c.height);
+x.fillStyle="#38bdf8";x.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
+x.fillStyle="white";x.beginPath();x.arc(ball.x,ball.y,bR,0,Math.PI*2);x.fill();
+for(let b of bricks){if(b.alive){x.fillStyle=b.y<100?"#bae6fd":b.y<200?"#7dd3fc":"#38bdf8";x.fillRect(b.x,b.y,b.w,b.h)}}
+x.fillStyle="#94a3b8";x.font="20px Arial";x.fillText("Счет: "+score,20,20);
+if(gameOver){x.fillStyle="rgba(0,0,0,0.8)";x.fillRect(0,0,c.width,c.height);x.fillStyle="#ef4444";x.font="24px Arial";x.fillText("Игра окончена!",c.width/2-80,c.height/2)}}
+document.addEventListener('mousemove',e=>{let r=c.getBoundingClientRect();paddle.x=e.clientX-r.left-pW/2;if(paddle.x<0)paddle.x=0;if(paddle.x+pW>c.width)paddle.x=c.width-pW});
+c.addEventListener('touchmove',e=>{e.preventDefault();let r=c.getBoundingClientRect();paddle.x=e.touches[0].clientX-r.left-pW/2;if(paddle.x<0)paddle.x=0;if(paddle.x+pW>c.width)paddle.x=c.width-pW},{passive:false});
+init();
+</script></body></html>
