@@ -6,30 +6,26 @@
     <title>2048</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, sans-serif; touch-action: none; color: white; overflow: hidden; }
+        body { background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, sans-serif; touch-action: none; color: white; overflow: hidden; background-image: radial-gradient(circle, #1e293b 1px, transparent 1px); background-size: 20px 20px; }
         .header { display: flex; justify-content: space-between; width: 90vmin; max-width: 400px; margin-bottom: 20px; align-items: center; }
-        .title { font-size: 32px; font-weight: bold; color: #38bdf8; }
+        .title { font-size: 32px; font-weight: bold; color: #38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.5); }
         .score-box { background: #1e293b; padding: 10px 20px; border-radius: 10px; text-align: center; border: 2px solid #475569; }
         .score-box div:first-child { font-size: 12px; color: #94a3b8; text-transform: uppercase; }
         .score-box div:last-child { font-size: 20px; font-weight: bold; }
         
-        #game-container {
-            background: #1e293b; padding: 10px; border-radius: 12px; position: relative; border: 4px solid #475569;
-            width: 90vmin; height: 90vmin; max-width: 400px; max-height: 400px;
-        }
+        #game-container { background: #1e293b; padding: 10px; border-radius: 12px; position: relative; border: 4px solid #475569; width: 90vmin; height: 90vmin; max-width: 400px; max-height: 400px; }
         .grid-bg { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 10px; width: 100%; height: 100%; }
         .cell { background: #334155; border-radius: 8px; }
         
-        #tiles {
-            position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px;
-            display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 10px;
-            z-index: 10;
-        }
+        #tiles { position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 10px; z-index: 10; }
         .tile {
             display: flex; align-items: center; justify-content: center;
             font-size: 8vmin; font-weight: bold; border-radius: 8px;
-            transition: all 0.1s ease-in-out; color: #0f172a;
+            color: #0f172a; transition: transform 0.1s;
+            animation: pop 0.2s ease-in-out;
         }
+        @keyframes pop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
+        
         .tile-2 { background: #e2e8f0; } .tile-4 { background: #bae6fd; } .tile-8 { background: #7dd3fc; }
         .tile-16 { background: #38bdf8; color: white; } .tile-32 { background: #0ea5e9; color: white; }
         .tile-64 { background: #0284c7; color: white; } .tile-128 { background: #6366f1; color: white; }
@@ -63,6 +59,7 @@
     <script>
         let board = []; let score = 0;
         let tilesContainer = document.getElementById('tiles');
+        
         function initGame() {
             board = Array(4).fill(null).map(() => Array(4).fill(0));
             score = 0; document.getElementById('score').textContent = score;
