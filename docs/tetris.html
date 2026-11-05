@@ -7,53 +7,30 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
-            background: #0f172a; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            font-family: system-ui, sans-serif;
-            overflow: hidden;
-            touch-action: none;
-            color: white;
+            background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            height: 100vh; font-family: system-ui, sans-serif; overflow: hidden; touch-action: none; color: white;
         }
+        /* Снег на фоне */
+        .snow { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .snowflake { position: absolute; top: -10px; color: #bae6fd; font-size: 1.5em; opacity: 0.6; animation: fall linear infinite; }
+        @keyframes fall { to { transform: translateY(100vh); } }
+
         canvas { 
-            background: #1e293b; 
-            border-radius: 12px; 
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
-            border: 2px solid #475569;
-            margin-bottom: 10px;
+            background: #1e293b; border-radius: 12px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.3); border: 2px solid #475569; margin-bottom: 10px;
+            width: 90vw; height: 75vh; max-width: 300px; max-height: 600px; object-fit: contain;
         }
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-top: 10px;
-        }
+        .controls { display: flex; gap: 15px; margin-top: 10px; position: absolute; bottom: 20px; z-index: 10; }
         .btn {
-            background: #1e293b;
-            color: #bae6fd;
-            border: 2px solid #38bdf8;
-            border-radius: 12px;
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            user-select: none;
-            box-shadow: 0 4px 0 #0f172a;
-            transition: transform 0.1s;
+            background: #1e293b; color: #bae6fd; border: 2px solid #38bdf8; border-radius: 12px;
+            width: 60px; height: 60px; font-size: 24px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; user-select: none; box-shadow: 0 4px 0 #0f172a; transition: transform 0.1s;
         }
-        .btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 0px 0 #0f172a;
-        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0px 0 #0f172a; }
     </style>
 </head>
 <body>
-    <canvas id="game" width="240" height="480"></canvas>
+    <div class="snow" id="snow"></div>
+    <canvas id="game"></canvas>
     <div class="controls">
         <div class="btn" id="left">←</div>
         <div class="btn" id="rotate">🔄</div>
@@ -62,33 +39,41 @@
     </div>
 
     <script>
+        // Генерация снега
+        const snowContainer = document.getElementById('snow');
+        for (let i = 0; i < 50; i++) {
+            let flake = document.createElement('div');
+            flake.className = 'snowflake';
+            flake.innerHTML = '❄';
+            flake.style.left = Math.random() * 100 + 'vw';
+            flake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            flake.style.animationDelay = Math.random() * 5 + 's';
+            snowContainer.appendChild(flake);
+        }
+
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        const COLS = 10;
-        const ROWS = 20;
-        const BLOCK_SIZE = 24;
+        const COLS = 10, ROWS = 20;
+        let BLOCK_SIZE;
+
+        function resize() {
+            canvas.width = Math.min(window.innerWidth * 0.9, 300);
+            canvas.height = window.innerHeight * 0.75;
+            BLOCK_SIZE = canvas.width / COLS;
+        }
+        window.addEventListener('resize', () => { resize(); draw(); });
+        resize();
 
         let board, piece, score, gameLoop;
-
-        const COLORS = [
-            '#e2e8f0', '#bae6fd', '#7dd3fc', '#38bdf8', 
-            '#0ea5e9', '#0284c7', '#6366f1'
-        ];
-
+        const COLORS = ['#e2e8f0', '#bae6fd', '#7dd3fc', '#38bdf8', '#0ea5e9', '#0284c7', '#6366f1'];
         const SHAPES = [
-            [[1,1,1,1]],
-            [[1,0,0],[1,1,1]],
-            [[0,0,1],[1,1,1]],
-            [[1,1],[1,1]],
-            [[0,1,1],[1,1,0]],
-            [[0,1,0],[1,1,1]],
-            [[1,1,0],[0,1,1]]
+            [[1,1,1,1]], [[1,0,0],[1,1,1]], [[0,0,1],[1,1,1]], [[1,1],[1,1]],
+            [[0,1,1],[1,1,0]], [[0,1,0],[1,1,1]], [[1,1,0],[0,1,1]]
         ];
 
         function init() {
             board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
-            score = 0;
-            spawnPiece();
+            score = 0; spawnPiece();
             if(gameLoop) clearInterval(gameLoop);
             gameLoop = setInterval(update, 500);
             draw();
@@ -96,27 +81,16 @@
 
         function spawnPiece() {
             const type = Math.floor(Math.random() * SHAPES.length);
-            piece = {
-                shape: SHAPES[type],
-                color: COLORS[type],
-                x: Math.floor(COLS/2) - Math.floor(SHAPES[type][0].length/2),
-                y: 0
-            };
-            if (collide()) {
-                clearInterval(gameLoop);
-                setTimeout(() => { alert('Игра окончена! Счет: ' + score); init(); }, 100);
-            }
+            piece = { shape: SHAPES[type], color: COLORS[type], x: Math.floor(COLS/2) - Math.floor(SHAPES[type][0].length/2), y: 0 };
+            if (collide()) { clearInterval(gameLoop); setTimeout(() => { alert('Игра окончена! Счет: ' + score); init(); }, 100); }
         }
 
         function collide() {
             for (let y = 0; y < piece.shape.length; y++) {
                 for (let x = 0; x < piece.shape[y].length; x++) {
                     if (piece.shape[y][x] !== 0) {
-                        let boardX = piece.x + x;
-                        let boardY = piece.y + y;
-                        if (boardX < 0 || boardX >= COLS || boardY >= ROWS || (boardY >= 0 && board[boardY][boardX] !== 0)) {
-                            return true;
-                        }
+                        let boardX = piece.x + x, boardY = piece.y + y;
+                        if (boardX < 0 || boardX >= COLS || boardY >= ROWS || (boardY >= 0 && board[boardY][boardX] !== 0)) return true;
                     }
                 }
             }
@@ -126,9 +100,7 @@
         function merge() {
             for (let y = 0; y < piece.shape.length; y++) {
                 for (let x = 0; x < piece.shape[y].length; x++) {
-                    if (piece.shape[y][x] !== 0) {
-                        board[piece.y + y][piece.x + x] = piece.color;
-                    }
+                    if (piece.shape[y][x] !== 0) board[piece.y + y][piece.x + x] = piece.color;
                 }
             }
         }
@@ -136,10 +108,7 @@
         function clearLines() {
             for (let y = ROWS - 1; y >= 0; y--) {
                 if (board[y].every(val => val !== 0)) {
-                    board.splice(y, 1);
-                    board.unshift(Array(COLS).fill(0));
-                    score += 10;
-                    y++;
+                    board.splice(y, 1); board.unshift(Array(COLS).fill(0)); score += 10; y++;
                 }
             }
         }
@@ -147,72 +116,33 @@
         function rotate() {
             const oldShape = piece.shape;
             const newShape = oldShape[0].map((_, i) => oldShape.map(row => row[i]).reverse());
-            const oldX = piece.x;
-            const oldY = piece.y;
-            
+            const oldX = piece.x, oldY = piece.y;
             piece.shape = newShape;
-            
             let offset = 1;
             while (collide()) {
-                piece.x += offset;
-                offset = -(offset + (offset > 0 ? 1 : -1));
-                if (Math.abs(offset) > newShape[0].length) {
-                    piece.shape = oldShape;
-                    piece.x = oldX;
-                    piece.y = oldY;
-                    return;
-                }
+                piece.x += offset; offset = -(offset + (offset > 0 ? 1 : -1));
+                if (Math.abs(offset) > newShape[0].length) { piece.shape = oldShape; piece.x = oldX; piece.y = oldY; return; }
             }
         }
 
         function update() {
             piece.y++;
-            if (collide()) {
-                piece.y--;
-                merge();
-                clearLines();
-                spawnPiece();
-            }
+            if (collide()) { piece.y--; merge(); clearLines(); spawnPiece(); }
             draw();
         }
 
         function draw() {
-            ctx.fillStyle = "#1e293b";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = "#334155";
-            ctx.lineWidth = 1;
-            for(let i=0; i<=COLS; i++) {
-                ctx.beginPath(); ctx.moveTo(i*BLOCK_SIZE, 0); ctx.lineTo(i*BLOCK_SIZE, canvas.height); ctx.stroke();
-            }
-            for(let i=0; i<=ROWS; i++) {
-                ctx.beginPath(); ctx.moveTo(0, i*BLOCK_SIZE); ctx.lineTo(canvas.width, i*BLOCK_SIZE); ctx.stroke();
-            }
-
-            for (let y = 0; y < ROWS; y++) {
-                for (let x = 0; x < COLS; x++) {
-                    if (board[y][x] !== 0) {
-                        drawBlock(x, y, board[y][x]);
-                    }
-                }
-            }
-
-            if (piece) {
-                for (let y = 0; y < piece.shape.length; y++) {
-                    for (let x = 0; x < piece.shape[y].length; x++) {
-                        if (piece.shape[y][x] !== 0) {
-                            drawBlock(piece.x + x, piece.y + y, piece.color);
-                        }
-                    }
-                }
-            }
+            ctx.fillStyle = "#1e293b"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "#334155"; ctx.lineWidth = 1;
+            for(let i=0; i<=COLS; i++) { ctx.beginPath(); ctx.moveTo(i*BLOCK_SIZE, 0); ctx.lineTo(i*BLOCK_SIZE, canvas.height); ctx.stroke(); }
+            for(let i=0; i<=ROWS; i++) { ctx.beginPath(); ctx.moveTo(0, i*BLOCK_SIZE); ctx.lineTo(canvas.width, i*BLOCK_SIZE); ctx.stroke(); }
+            for (let y = 0; y < ROWS; y++) { for (let x = 0; x < COLS; x++) { if (board[y][x] !== 0) drawBlock(x, y, board[y][x]); } }
+            if (piece) { for (let y = 0; y < piece.shape.length; y++) { for (let x = 0; x < piece.shape[y].length; x++) { if (piece.shape[y][x] !== 0) drawBlock(piece.x + x, piece.y + y, piece.color); } } }
         }
 
         function drawBlock(x, y, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
-            ctx.fillStyle = "rgba(255,255,255,0.3)";
-            ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, 4);
+            ctx.fillStyle = color; ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+            ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, 4); // Блик льда
         }
 
         document.getElementById('left').addEventListener('click', () => { piece.x--; if (collide()) piece.x++; draw(); });
