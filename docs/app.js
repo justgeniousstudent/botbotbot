@@ -12,7 +12,7 @@ function show(id) {
 }
 
 function updateTimer() {
-  if (unlimited) { document.getElementById('timer').textContent = '✅ Безлимит'; return; }
+  if (unlimited) { document.getElementById('timer').textContent = '✅ Безлимит активен'; return; }
   let m = Math.floor(timeLeft/60), s = timeLeft%60;
   document.getElementById('timer').textContent = `⏳ Пробный: ${m}:${s.toString().padStart(2,'0')}`;
 }
@@ -22,11 +22,7 @@ function startTimer() {
   timerId = setInterval(() => {
     timeLeft--;
     updateTimer();
-    if (timeLeft <= 0) { 
-        clearInterval(timerId); 
-        timerId = null; 
-        show('pay'); 
-    }
+    if (timeLeft <= 0) { clearInterval(timerId); timerId = null; show('pay'); }
   }, 1000);
 }
 
@@ -34,22 +30,24 @@ document.querySelectorAll('.game-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     if (!unlimited && timeLeft <= 0) { show('pay'); return; }
     
-    let gameContent = '';
-    const btnText = btn.textContent;
-    
-    if (btnText.includes('Змейка')) {
-        gameContent = `<iframe src="snake.html" style="width:100%; height:100%; border:none; border-radius:20px;"></iframe>`;
-    } else if (btnText.includes('Flappy')) {
-        gameContent = `<iframe src="flappy.html" style="width:100%; height:100%; border:none; border-radius:20px;"></iframe>`;
-    } else if (btnText.includes('2048')) {
-        gameContent = `<iframe src="2048.html" style="width:100%; height:100%; border:none; border-radius:20px;"></iframe>`;
-    } else if (btnText.includes('Тетрис')) {
-        gameContent = `<iframe src="tetris.html" style="width:100%; height:100%; border:none; border-radius:20px;"></iframe>`;
+    let src = '';
+    const txt = btn.textContent;
+    if (txt.includes('Змейка')) src = 'snake.html';
+    else if (txt.includes('Flappy')) src = 'flappy.html';
+    else if (txt.includes('2048')) src = '2048.html';
+    else if (txt.includes('Тетрис')) src = 'tetris.html';
+    else if (txt.includes('Понг')) src = 'pong.html';
+    else if (txt.includes('Арканоид')) src = 'breakout.html';
+    else if (txt.includes('Инвейдеры')) src = 'invaders.html';
+    else if (txt.includes('Память')) src = 'memory.html';
+    else if (txt.includes('Кликер')) src = 'clicker.html';
+
+    if (src) {
+        document.getElementById('game-box').innerHTML = `<iframe src="${src}"></iframe>`;
     } else {
-        gameContent = `<h2>${btnText}</h2><p>Игра будет здесь</p>`;
+        document.getElementById('game-box').innerHTML = `<h2 style="text-align:center; margin-top:50px;">В разработке...</h2>`;
     }
     
-    document.getElementById('game-box').innerHTML = gameContent;
     show('game');
     startTimer();
   });
