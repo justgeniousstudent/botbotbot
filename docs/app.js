@@ -33,6 +33,7 @@ document.querySelectorAll('.game-btn').forEach(btn => {
     let src = '';
     const txt = btn.textContent;
     if (txt.includes('Змейка')) src = 'snake.html';
+   else if (txt.includes('Марио')) src = 'mario.html';
     else if (txt.includes('Flappy')) src = 'flappy.html';
     else if (txt.includes('2048')) src = '2048.html';
     else if (txt.includes('Тетрис')) src = 'tetris.html';
