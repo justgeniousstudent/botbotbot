@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Зимний Марио</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0f172a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: none; font-family: system-ui, sans-serif; }
+        canvas { background: #0f172a; border: 4px solid #475569; border-radius: 16px; box-shadow: 0 0 30px rgba(56,189,248,0.2); }
+    </style>
+</head>
+<body>
+    <canvas id="game"></canvas>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        canvas.width = Math.min(window.innerWidth * 0.9, 600);
+        canvas.height = Math.min(window.innerHeight * 0.8, 400);
+
+        let player, platforms, obstacles, frames, gameLoop, isGameOver, score;
+        let mountains = [], snow = [];
+        
+        const GRAVITY = 0.5;
+        const JUMP_FORCE = -10;
+        const SPEED = 4;
+
+        function init() {
+            player = { x: 50, y: canvas.height - 60, w: 30, h: 30, vy: 0, isJumping: false };
+            platforms = [{ x: 0, y: canvas.height - 20, w: canvas.width * 2, h: 20 }]; // Земля
+            obstacles = [];
+            frames = 0;
+            score = 0;
+            isGameOver = false;
+
+            // Генерация снега и гор
+            mountains = [];
+            let mX = 0;
+            while(mX < canvas.width * 2) {
+                mountains.push({x: mX, w: Math.random()*80+50, h: Math.random()*100+80});
+                mX += Math.random()*50+30;
+            }
+            snow = [];
+            for(let i=0; i<40; i++) {
+                snow.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: Math.random() * 2 + 1, speed: Math.random() * 1 + 0.5 });
+            }
+
+            if(gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 1000/60);
+        }
+
+        function jump() {
+            if (!player.isJumping && !isGameOver) {
+                player.vy = JUMP_FORCE;
+                player.isJumping = true;
+            }
+            if (isGameOver) init();
+        }
+
+        function update() {
+            if (isGameOver) return;
+            frames++;
+
+            // Физика игрока
+            player.vy += GRAVITY;
+            player.y += player.vy;
+            player.isJumping = true;
+
+            // Проверка коллизий с платформами (только при падении вниз)
+            if (player.vy > 0) {
+                platforms.forEach(p => {
+                    if (player.x < p.x + p.w && player.x + player.w > p.x &&
+                        player.y + player.h > p.y && player.y + player.h < p.y + p.h + 10) {
+                        player.y = p.y - player.h;
+                        player.vy = 0;
+                        player.isJumping = false;
+                    }
+                });
+            }
+
+            // Генерация препятствий
+            if (frames % 90 === 0) {
+                let obsY = canvas.height - 20 - 20; // На земле
+                obstacles.push({ x: canvas.width, y: obsY, w: 20, h: 20 });
+                // Иногда добавляем парящую платформу
+                if (Math.random() > 0.7) {
+                     platforms.push({ x: canvas.width, y: canvas.height - 120, w: 80, h: 15 });
+                }
+            }
+
+            // Движение мира влево
+            platforms.forEach(p => p.x -= SPEED);
+            obstacles.forEach(o => o.x -= SPEED);
+
+            // Удаление ушедших объектов
+            platforms = platforms.filter(p => p.x + p.w > 0);
+            obstacles = obstacles.filter(o => o.x + o.w > 0);
+
+            // Коллизия с препятствиями
+            obstacles.forEach(o => {
+                if (player.x < o.x + o.w && player.x + player.w > o.x &&
+                    player.y < o.y + o.h && player.y + player.h > o.y) {
+                    gameOver();
+                }
+            });
+
+            // Снег
+            snow.forEach(s => {
+                s.y += s.speed;
+                if(s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+            });
+
+            score++;
+            draw();
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            clearInterval(gameLoop);
+        }
+
+        function draw() {
+            // 1. Небо
+            let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGrad.addColorStop(0, "#0f172a"); skyGrad.addColorStop(1, "#1e3a8a");
+            ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Луна
+            ctx.fillStyle = "#fef08a"; ctx.beginPath(); ctx.arc(canvas.width - 60, 60, 30, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "rgba(254, 240, 138, 0.2)"; ctx.beginPath(); ctx.arc(canvas.width - 60, 60, 50, 0, Math.PI*2); ctx.fill();
+
+            // 3. Горы (Параллакс)
+            ctx.fillStyle = "#1e293b";
+            mountains.forEach(m => {
+                let xPos = (m.x - frames * 0.5) % (canvas.width * 2);
+                if (xPos < -100) xPos += canvas.width * 2;
+                ctx.beginPath(); ctx.moveTo(xPos, canvas.height); ctx.lineTo(xPos + m.w/2, canvas.height - m.h); ctx.lineTo(xPos + m.w, canvas.height); ctx.fill();
+            });
+
+            // 4. Платформы (Ледяные)
+            platforms.forEach(p => {
+                ctx.fillStyle = "#38bdf8"; ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fillRect(p.x, p.y, p.w, 4); // Блик
+            });
+
+            // 5. Препятствия (Шипы)
+            obstacles.forEach(o => {
+                ctx.fillStyle = "#ef4444";
+                ctx.beginPath();
+                ctx.moveTo(o.x, o.y + o.h);
+                ctx.lineTo(o.x + o.w/2, o.y);
+                ctx.lineTo(o.x + o.w, o.y + o.h);
+                ctx.fill();
+            });
+
+            // 6. Игрок (Пингвин/Снеговик)
+            ctx.font = "30px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText("🐧", player.x + player.w/2, player.y + player.h/2);
+
+            // 7. Снег
+            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+            snow.forEach(s => { ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
+
+            // 8. Счет
+            ctx.fillStyle = "#94a3b8"; ctx.font = "20px Arial"; ctx.textAlign = "left";
+            ctx.fillText("Счет: " + Math.floor(score / 10), 20, 30);
+
+            // 9. Game Over
+            if (isGameOver) {
+                ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#ef4444"; ctx.font = "bold 30px Arial"; ctx.textAlign = "center";
+                ctx.fillText("Игра окончена!", canvas.width/2, canvas.height/2 - 20);
+                ctx.fillStyle = "white"; ctx.font = "20px Arial";
+                ctx.fillText("Нажми, чтобы играть снова", canvas.width/2, canvas.height/2 + 20);
+            }
+        }
+
+        // Управление
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space" || e.key === "ArrowUp") { e.preventDefault(); jump(); }
+        });
+        canvas.addEventListener("mousedown", jump);
+        canvas.addEventListener("touchstart", (e) => { e.preventDefault(); jump(); }, {passive: false});
+
+        init();
+    </script>
+</body>
+</html>
